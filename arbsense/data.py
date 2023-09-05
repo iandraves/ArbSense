@@ -1,49 +1,121 @@
+import json
+
 import pandas as pd
 
 from . import stats
 
 
-def get_surebets(odds_data: dict) -> pd.DataFrame:
-    surebets = []
-
+def __flatten_odds_data(odds_data: dict) -> dict:
+    all_odds = {}
     for event in odds_data:
-        team_a, team_b = event.get("home_team"), event.get("away_team")
-
-        bookmaker_odds = []
+        odds = []
         for bookmaker in event.get("bookmakers"):
-            book = bookmaker.get("key")
-            markets = bookmaker.get("markets")
+            for market in bookmaker.get("markets"):
+                odds.append(
+                    {
+                        "bookmaker_key": bookmaker.get("key"),
+                        "bookmaker_title": bookmaker.get("title"),
+                        "sport_key": event.get("sport_key"),
+                        "sport_title": event.get("sport_title"),
+                        "commence_time": event.get("commence_time"),
+                        "market": market.get("key"),
+                        "last_update": market.get("last_update"),
+                        "home_team": event.get("home_team"),
+                        "away_team": event.get("away_team"),
+                        "home_team_odds": market.get("outcomes")[0].get("price"),
+                        "away_team_odds": market.get("outcomes")[1].get("price"),
+                    }
+                )
 
-            for market in markets:
-                pass
+        all_odds[event.get("id")] = odds
 
-            pass
+    return all_odds
 
-        odds_list = []
 
-        for site in event["sites"]:
-            odds = site["odds"]["h2h"]
-            odds_list.append((site["site_nice"], odds))
+def surebet_already_tracked(
+    surebets: list,
+    event_id: str,
+    bookmaker_a: str,
+    bookmaker_b: str,
+    market: str,
+) -> bool:
+    for surebet in surebets:
+        if (
+            (surebet.get("event_id") == event_id)
+            and surebet.get("market") == market
+            and (
+                (surebet.get("bookmaker_a") == bookmaker_a)
+                or (surebet.get("bookmaker_a") == bookmaker_b)
+            )
+        ):
+            return True
 
-        for i in range(len(odds_list)):
-            for j in range(i + 1, len(odds_list)):
-                site_a, odds_a = odds_list[i]
-                site_b, odds_b = odds_list[j]
+    return False
 
-                profit, bet_a, bet_b = stats.compute_surebet(odds_a[0], odds_b[0])
 
-                if profit:
+def get_surebets(investment_usd: int, odds_data: dict) -> pd.DataFrame:
+    all_odds = __flatten_odds_data(odds_data=odds_data)
+
+    surebets = []
+    for event_id, odds in all_odds.items():
+        for odds_a in odds:
+            for odds_b in reversed(odds):
+                if (odds_a.get("bookmaker_key") == odds_b.get("bookmaker_key")) or (
+                    odds_a.get("market") != odds_b.get("market")
+                ):
+                    continue
+
+                if surebet_already_tracked(
+                    surebets=surebets,
+                    event_id=event_id,
+                    bookmaker_a=odds_a.get("bookmaker_key"),
+                    bookmaker_b=odds_b.get("bookmaker_key"),
+                    market=odds_a.get("market"),
+                ):
+                    continue
+
+                is_profit, profit_percent, bet_a, bet_b = stats.compute_arbitrage(
+                    investment_usd=investment_usd,
+                    odds_a=odds_a.get("home_team_odds"),
+                    odds_b=odds_b.get("away_team_odds"),
+                )
+
+                if is_profit:
                     surebets.append(
                         {
-                            "Team A": team_a,
-                            "Team B": team_b,
-                            "Site A": site_a,
-                            "Site B": site_b,
-                            "Odds A": odds_a[0],
-                            "Odds B": odds_b[0],
-                            "Profit %": round(profit, 2),
-                            "Bet A": round(bet_a, 2),
-                            "Bet B": round(bet_b, 2),
-                            "Timestamp": event["commence_time"],
+                            "event_id": event_id,
+                            "sport_key": odds_a.get("sport_key"),
+                            "sport_title": odds_a.get("sport_title"),
+                            "commence_time": odds_a.get("commence_time"),
+                            "market": odds_a.get("market"),
+                            "last_update": odds_a.get("last_update"),
+                            "home_team": odds_a.get("home_team"),
+                            "away_team": odds_a.get("away_team"),
+                            "bookmaker_a": odds_a.get("bookmaker_key"),
+                            "bookmaker_b": odds_b.get("bookmaker_key"),
+                            "bookmaker_a_home_team_odds": odds_a.get("home_team_odds"),
+                            "bookmaker_b_home_team_odds": odds_b.get("home_team_odds"),
+                            "bookmaker_a_away_team_odds": odds_a.get("away_team_odds"),
+                            "bookmaker_b_away_team_odds": odds_b.get("away_team_odds"),
+                            "profit_percent": round(profit_percent, 2),
+                            "bet_a_usd": round(bet_a, 2),
+                            "bet_b_usd": round(bet_b, 2),
+                            "profit_usd": round(
+                                investment_usd * (profit_percent / 100), 2
+                            ),
                         }
                     )
+
+    return pd.DataFrame(surebets)
+
+
+def save_odds_data(odds_data: dict, name: str) -> None:
+    with open(f"./data/{name}", "w") as f:
+        f.write(json.dumps(odds_data))
+
+
+def load_odds_data(name: str) -> dict:
+    with open(f"./data/{name}") as f:
+        odds_data = json.load(f)
+
+    return odds_data
