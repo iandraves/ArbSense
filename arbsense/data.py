@@ -77,7 +77,7 @@ def get_surebets(investment_usd: int, odds_data: dict) -> pd.DataFrame:
                 is_profit, profit_percent, bet_a, bet_b = stats.compute_arbitrage(
                     investment_usd=investment_usd,
                     odds_a=odds_a.get("home_team_odds"),
-                    odds_b=odds_b.get("away_team_odds"),
+                    odds_b=odds_b.get("home_team_odds"),
                 )
 
                 if is_profit:

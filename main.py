@@ -12,6 +12,7 @@ def main():
     odds_data = betiq.get_odds(
         api_key=os.getenv("THE_ODDS_API_API_KEY"),
         sport="upcoming",
+        bookmakers=list(arbsense.VALID_CO_BOOKMAKERS_FOR_THE_ODDS_API.keys()),
     )
 
     surebets_df = arbsense.data.get_surebets(investment_usd=1000, odds_data=odds_data)

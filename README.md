@@ -1,2 +1,2 @@
 # ArbSense
-Detecting discreet arbitrage opportunities in sports betting markets.
+Detecting arbitrage opportunities in online Colorado sports betting markets.
