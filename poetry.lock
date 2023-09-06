@@ -42,13 +42,13 @@ lxml = ["lxml"]
 
 [[package]]
 name = "betiq"
-version = "0.0.10"
+version = "0.0.16"
 description = "An unofficial SDK for The Odds API."
 optional = false
 python-versions = ">=3.11,<4.0"
 files = [
-    {file = "betiq-0.0.10-py3-none-any.whl", hash = "sha256:6fba871ce8e3e54eca1a34b77f077613468845aa31d40e8501ed1eb69e8a6cdd"},
-    {file = "betiq-0.0.10.tar.gz", hash = "sha256:dc6cf82532d529f5b1ebc09387b836975b8f2eb422e4faa59a3d2b2084dd5384"},
+    {file = "betiq-0.0.16-py3-none-any.whl", hash = "sha256:bc42ffbcc7adc5fe78a813f28df66f1a6d8924d9101efe12a0477d0ac5772b31"},
+    {file = "betiq-0.0.16.tar.gz", hash = "sha256:77a044176f1c3764d42b17b4f802a4560f55a4d3945791344e8124ec73da4b64"},
 ]
 
 [package.dependencies]
@@ -757,4 +757,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "4c5bb078c3e1825b77937c1b37e890065cdb4a3d59d7aec7475c9da9fa441393"
+content-hash = "3c693034fb04f736d1476a665f74e927216866155498029ade4e6a975cc48494"
