@@ -17,57 +17,61 @@ VALID_CO_BOOKMAKERS_ON_ODDS_API = {
     "pointsbet": "https://co.pointsbet.com/",
     "sisportsbook": "https://www.sisportsbook.com/",
     "superbook": "https://co.superbook.com/sports",
-    "tipico_us": "https://www.tipico.com/us",
+    "tipico_us": "https://sportsbook-co.tipico.us/home",
 }
 
 
-def __flatten_odds_data(odds_data: dict) -> dict:
-    all_odds = {}
-    for event in odds_data:
-        odds = []
-        for bookmaker in event.get("bookmakers"):
-            for market in bookmaker.get("markets"):
-                odds.append(
-                    {
-                        "book_key": bookmaker.get("key"),
-                        "book_title": bookmaker.get("title"),
-                        "sport_key": event.get("sport_key"),
-                        "sport_title": event.get("sport_title"),
-                        "commence_time": event.get("commence_time"),
-                        "market": market.get("key"),
-                        "last_update": market.get("last_update"),
-                        "team_a": event.get("home_team"),
-                        "team_b": event.get("away_team"),
-                        "odds_team_a": market.get("outcomes")[0].get("price"),
-                        "odds_team_b": market.get("outcomes")[1].get("price"),
-                    }
+def parse_surebets(investment_usd: int, odds_data: dict) -> pd.DataFrame:
+    def flatten_odds_data_to_binary_outcomes(odds_data: dict) -> dict:
+        all_odds = {}
+        for event in odds_data:
+            odds = []
+            for bookmaker in event.get("bookmakers"):
+                for market in bookmaker.get("markets"):
+                    if len(market.get("outcomes")) != 2:
+                        continue
+
+                    odds.append(
+                        {
+                            "book_key": bookmaker.get("key"),
+                            "book_title": bookmaker.get("title"),
+                            "sport_key": event.get("sport_key"),
+                            "sport_title": event.get("sport_title"),
+                            "commence_time": event.get("commence_time"),
+                            "market": market.get("key"),
+                            "last_update": market.get("last_update"),
+                            "team_a": event.get("home_team"),
+                            "team_b": event.get("away_team"),
+                            "odds_team_a": market.get("outcomes")[0].get("price"),
+                            "odds_team_b": market.get("outcomes")[1].get("price"),
+                        }
+                    )
+
+            all_odds[event.get("id")] = odds
+
+        return all_odds
+
+    def surebet_already_tracked(
+        surebets: list,
+        event_id: str,
+        book_a: str,
+        book_b: str,
+        market: str,
+    ) -> bool:
+        for surebet in surebets:
+            if (
+                (surebet.get("event_id") == event_id)
+                and surebet.get("market") == market
+                and (
+                    (surebet.get("book_a") == book_a)
+                    or (surebet.get("book_a") == book_b)
                 )
+            ):
+                return True
 
-        all_odds[event.get("id")] = odds
+        return False
 
-    return all_odds
-
-
-def __surebet_already_tracked(
-    surebets: list,
-    event_id: str,
-    book_a: str,
-    book_b: str,
-    market: str,
-) -> bool:
-    for surebet in surebets:
-        if (
-            (surebet.get("event_id") == event_id)
-            and surebet.get("market") == market
-            and ((surebet.get("book_a") == book_a) or (surebet.get("book_a") == book_b))
-        ):
-            return True
-
-    return False
-
-
-def get_surebets(investment_usd: int, odds_data: dict) -> pd.DataFrame:
-    all_odds = __flatten_odds_data(odds_data=odds_data)
+    all_odds = flatten_odds_data_to_binary_outcomes(odds_data=odds_data)
 
     surebets = []
     for event_id, book_odds in all_odds.items():
@@ -78,7 +82,7 @@ def get_surebets(investment_usd: int, odds_data: dict) -> pd.DataFrame:
                 ):
                     continue
 
-                if __surebet_already_tracked(
+                if surebet_already_tracked(
                     surebets=surebets,
                     event_id=event_id,
                     book_a=odds_book_a.get("book_key"),
@@ -128,12 +132,11 @@ def get_surebets(investment_usd: int, odds_data: dict) -> pd.DataFrame:
                             "place_team_b_bet_with": arbitrage.get(
                                 "place_team_b_bet_with"
                             ),
-                            "profit_percent": round(arbitrage.get("profit_percent"), 2),
-                            "profit_usd": round(
-                                investment_usd
-                                * (arbitrage.get("profit_percent") / 100),
-                                2,
+                            "total_bet_size_usd": round(
+                                arbitrage.get("total_bet_size_usd"), 2
                             ),
+                            "profit_percent": round(arbitrage.get("profit_percent"), 2),
+                            "profit_usd": round(arbitrage.get("profit_usd"), 2),
                         }
                     )
 

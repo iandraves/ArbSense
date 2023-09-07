@@ -14,36 +14,40 @@ def compute_arbitrages(
     ip_book_b_team_a = 1 / odds_book_b_team_a
     ip_book_b_team_b = 1 / odds_book_b_team_b
 
-    total_ip_team_a = ip_book_a_team_a + ip_book_b_team_a
-    total_ip_team_b = ip_book_a_team_b + ip_book_b_team_b
+    total_ip_team_a = ip_book_a_team_a + ip_book_b_team_b
+    total_ip_team_b = ip_book_b_team_a + ip_book_a_team_b
 
     # Detect arbitrage opportunities (when total implied probability < 1)
     arbitrages = []
     if total_ip_team_a < 1:
-        bet_book_a_team_a = (investment_usd * ip_book_a_team_a) / odds_book_a_team_a
-        bet_book_b_team_b = (investment_usd * ip_book_b_team_b) / odds_book_b_team_b
+        team_a_bet_size_usd = (investment_usd * ip_book_a_team_a) / odds_book_a_team_a
+        team_b_bet_size_usd = (investment_usd * ip_book_b_team_b) / odds_book_b_team_b
 
         arbitrages.append(
             {
-                "profit_percent": (1 - total_ip_team_a) * 100,
-                "team_a_bet_size_usd": bet_book_a_team_a,
-                "team_b_bet_size_usd": bet_book_b_team_b,
+                "total_bet_size_usd": team_a_bet_size_usd + team_b_bet_size_usd,
+                "team_a_bet_size_usd": team_a_bet_size_usd,
+                "team_b_bet_size_usd": team_b_bet_size_usd,
                 "place_team_a_bet_with": odds_book_a.get("book_key"),
                 "place_team_b_bet_with": odds_book_b.get("book_key"),
+                "profit_percent": (1 - total_ip_team_a) * 100,
+                "profit_usd": (1 - total_ip_team_a) * investment_usd,
             }
         )
 
     if total_ip_team_b < 1:
-        bet_book_b_team_a = (investment_usd * ip_book_b_team_a) / odds_book_b_team_a
-        bet_book_a_team_b = (investment_usd * ip_book_a_team_b) / odds_book_a_team_b
+        team_a_bet_size_usd = (investment_usd * ip_book_b_team_a) / odds_book_b_team_a
+        team_b_bet_size_usd = (investment_usd * ip_book_a_team_b) / odds_book_a_team_b
 
         arbitrages.append(
             {
-                "profit_percent": (1 - total_ip_team_b) * 100,
-                "team_a_bet_size_usd": bet_book_b_team_a,
-                "team_b_bet_size_usd": bet_book_a_team_b,
+                "total_bet_size_usd": team_a_bet_size_usd + team_b_bet_size_usd,
+                "team_a_bet_size_usd": team_a_bet_size_usd,
+                "team_b_bet_size_usd": team_b_bet_size_usd,
                 "place_team_a_bet_with": odds_book_b.get("book_key"),
                 "place_team_b_bet_with": odds_book_a.get("book_key"),
+                "profit_percent": (1 - total_ip_team_b) * 100,
+                "profit_usd": (1 - total_ip_team_b) * investment_usd,
             }
         )
 
